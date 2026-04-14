@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LoRa Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #080b0f;
+  --surface: #0e1318;
+  --border:  #1c2530;
+  --accent:  #00e5ff;
+  --danger:  #ff3b3b;
+  --muted:   #3a4a58;
+  --text:    #c8d8e8;
+  --dim:     #5a7080;
+  --mono:    'Share Tech Mono', monospace;
+  --sans:    'Barlow', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
+  background-size: 40px 40px;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+header {
+  background: rgba(8,11,15,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.logo-icon {
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 0 12px rgba(0,229,255,0.25);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.live-dot {
+  display: flex; align-items: center; gap: 6px;
+  color: #3dff7a;
+}
+.live-dot::before {
+  content: '';
+  width: 7px; height: 7px;
+  background: #3dff7a;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #3dff7a;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+#clock { color: var(--accent); letter-spacing: 1px; }
+
+/* ── Stats grid ──────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.stat {
+  background: var(--surface);
+  padding: 22px 24px;
+  position: relative;
+  overflow: hidden;
+  transition: background .2s;
+}
+.stat:hover { background: #111820; }
+.stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.stat:hover::before { opacity: 1; }
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--accent);
+  line-height: 1;
+  transition: all .4s;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 6px;
+}
+
+.stat.danger .stat-value { color: var(--danger); }
+.stat.danger::before { background: var(--danger); }
+
+/* ── Main layout ─────────────────────────────────────────── */
+main { padding: 24px 28px; max-width: 1100px; margin: 0 auto; }
+
+.section-head {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Message list ────────────────────────────────────────── */
+#msg-list { display: flex; flex-direction: column; gap: 6px; }
+
+.msg {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  animation: slideIn .3s ease;
+  transition: border-color .2s;
+}
+.msg:hover { border-color: var(--muted); }
+
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(-6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.msg.sos {
+  border-color: var(--danger);
+  background: rgba(255,59,59,0.07);
+  animation: slideIn .3s ease, sosFlash .6s ease 1;
+}
+@keyframes sosFlash {
+  0%,100%{background:rgba(255,59,59,0.07)}
+  50%{background:rgba(255,59,59,0.22)}
+}
+
+.msg-icon {
+  width: 36px; height: 36px;
+  border-radius: 6px;
+  background: var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.msg.sos .msg-icon { background: rgba(255,59,59,0.2); }
+
+.msg-body {}
+
+.msg-text {
+  font-size: 14px;
+  font-weight: 400;
+  color: #e0ecf8;
+  margin-bottom: 4px;
+  word-break: break-word;
+  line-height: 1.4;
+}
+.msg.sos .msg-text {
+  color: var(--danger);
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 1px;
+}
+
+.msg-meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+}
+
+.tag {
+  background: rgba(0,229,255,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(0,229,255,0.2);
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+.msg.sos .tag { background:rgba(255,59,59,0.1); color:var(--danger); border-color:rgba(255,59,59,0.3); }
+
+.msg-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  align-self: start;
+}
+
+/* ── Empty / loading ─────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 60px 24px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+.empty span {
+  display: block;
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: .3;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">&#128225;</div>
+    LORA // DASHBOARD
+  </div>
+  <div class="status-bar">
+    <span class="live-dot">LIVE</span>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="stats" id="stats">
+  <div class="stat">
+    <div class="stat-label">Total Messages</div>
+    <div class="stat-value" id="s-total">--</div>
+    <div class="stat-sub">received</div>
+  </div>
+  <div class="stat danger" id="s-sos-card">
+    <div class="stat-label">SOS Alerts</div>
+    <div class="stat-value" id="s-sos">--</div>
+    <div class="stat-sub">emergencies</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg RSSI</div>
+    <div class="stat-value" id="s-rssi">--</div>
+    <div class="stat-sub">dBm signal strength</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Message</div>
+    <div class="stat-value" style="font-size:14px;padding-top:6px;color:var(--text)" id="s-last">--</div>
+    <div class="stat-sub" id="s-last-time">—</div>
+  </div>
+</div>
+
+<main>
+  <div class="section-head">Received Messages</div>
+  <div id="msg-list"><div class="empty"><span>&#128225;</span>Waiting for transmissions...</div></div>
+</main>
+
+<script>
+// Clock
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-GB');
+}, 1000);
+
+let lastCount = 0;
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function load() {
+  try {
+    const d = await (await fetch('/api/messages')).json();
+
+    document.getElementById('s-total').textContent = d.total;
+    document.getElementById('s-sos').textContent   = d.sosCount;
+    document.getElementById('s-rssi').textContent  = d.avgRssi || '—';
+    document.getElementById('s-last').textContent  = d.lastText.length > 18
+      ? d.lastText.substring(0, 18) + '…' : d.lastText;
+    document.getElementById('s-last-time').textContent = d.lastTime;
+
+    // Only re-render list if count changed (avoids flicker)
+    if (d.total === lastCount) return;
+    lastCount = d.total;
+
+    const list = document.getElementById('msg-list');
+
+    if (!d.messages || d.messages.length === 0) {
+      list.innerHTML = '<div class="empty"><span>&#128225;</span>Waiting for transmissions...</div>';
+      return;
+    }
+
+    list.innerHTML = d.messages.map(m => `
+      <div class="msg${m.isSOS ? ' sos' : ''}">
+        <div class="msg-icon">${m.isSOS ? '&#128680;' : '&#128225;'}</div>
+        <div class="msg-body">
+          <div class="msg-text">${esc(m.text)}</div>
+          <div class="msg-meta">
+            <span class="tag">RSSI ${m.rssi} dBm</span>
+            <span>${m.date}</span>
+          </div>
+        </div>
+        <div class="msg-time">${m.time}</div>
+      </div>
+    `).join('');
+
+  } catch(e) {
+    console.error('Fetch error:', e);
+  }
+}
+
+load();
+setInterval(load, 3000);
+</script>
+</body>
+</html>
